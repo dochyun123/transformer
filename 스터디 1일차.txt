@@ -1,0 +1,21 @@
+gpu 사용 최소화하는 방법 
+ex) padding - batch size 로 arbitrary 하게 하는것이 효율적
+반복문 사용시 - 시간적 손실 고려해야함
+
+torch tensor 는 나중에 부르는것이 유리
+
+torch tensor 는 get item에서
+
+Data loader - collate function
+
+
+Transformer 구현(git 공부) + 의료기기 발표 준비 + 딥러닝 프로젝트 진행 
+
+수 - 시험끝(놀자)
+
+목 - 제자반, Transformer 구현 + git
+금 - 금요예배, 딥러닝 프로젝트 진행
+토 - 선교 , 의료기기 발표 준비
+일 - 주일
+월 - 의료기기 발표준비, 토익 제출
+
