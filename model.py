@@ -74,8 +74,8 @@ class MultiHeadAttention(nn.Module):
         super(MultiHeadAttention, self).__init__()
         self.d_model = d_model  # embedding size : 512
         self.h = h  # head size : 8
+        assert d_model % h == 0
         self.head_dim = d_model // h  # head_dim = 64
-
         self.v_pr = nn.Linear(
             self.d_model, self.d_model, bias=False
         )  # fully connect linear
@@ -90,9 +90,9 @@ class MultiHeadAttention(nn.Module):
         # query = [batch size, query len, head dim]
         # key = [batch size, key len, head dim]
         # value = [batch size, value len, head dim]
-        Q = self.fc_q(query)
-        K = self.fc_k(keys)
-        V = self.fc_v(values)
+        Q = self.q_pr(query)
+        K = self.k_pr(keys)
+        V = self.v_pr(values)
 
         values = Q.reshape(batch_size, value_len, self.heads, self.head_dim)
         keys = K.reshape(batch_size, key_len, self.heads, self.head_dim)
