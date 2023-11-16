@@ -4,6 +4,10 @@ import math
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+d_model = 256
+h = 8
+
+
 
 # Position-wise Feed-Forward Networks
 class FFN(nn.Module):
