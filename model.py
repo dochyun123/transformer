@@ -111,24 +111,61 @@ class MultiHeadAttention(nn.Module):
         return out
     
 
+class AddNorm(nn.Module): 
+    
+    def __init__(self, norm_shape, dropout):
+        super().__init__()
+        self.dropout = nn.Dropout(dropout)
+        self.ln = nn.LayerNorm(norm_shape)
 
-class Encoder(nn.Module):
+    def forward(self, X, Y):
+        return self.ln(self.dropout(Y) + X)
+
+
+class EncoderLayer(nn.Module):
     def __init__(self, head_dim, n_heads, filter, dropout, device):
         super().__init__()
         
-        self.self_attn_layer_norm = nn.LayerNorm(head_dim)
+        self.layer_norm = nn.LayerNorm(head_dim)
         self.ff_layer_norm = nn.LayerNorm(head_dim)
-        self.self_attention = MultiHeadAttention(head_dim, n_heads, dropout, device)
-        self.positionwise_feedforward = FFN(head_dim,filter,dropout)
+        self.multihead_attention = MultiHeadAttention(head_dim, n_heads, dropout, device)
+        self.positionwise_ffn = FFN(head_dim,filter,dropout)
         self.dropout = nn.Dropout(dropout)
         
-    def forward(self, src, src_mask):             
+    def forward(self, X, mask):             
         
-        _src, _ = self.self_attention(src, src, src, src_mask)
-        src = self.self_attn_layer_norm(src + self.dropout(_src))
-        _src = self.positionwise_feedforward(src)
-        src = self.ff_layer_norm(src + self.dropout(_src))
+        out = self.multihead_attention(X, X, X, mask)
+        X = self.layer_norm(X + self.dropout(out))
+        out = self.positionwise_ffn(X)
+        X = self.ff_layer_norm(X + self.dropout(out))
     
-        return src
+        return X
 
 
+class Encoder(nn.Module):
+    def __init__(self, N ,d_embed, max_length, vocab_size, head_dim, n_heads, filter, dropout, device):
+        super().__init__()
+
+        self.device = device
+        self.tok_embedding = TokenEmbedding(d_embed, vocab_size)
+        self.pos_embedding = PositionalEncoding(d_embed,max_length)
+
+        self.layers = nn.ModuleList([EncoderLayer(head_dim, n_heads, filter, dropout, device) 
+                                     for _ in range(N)])
+        self.dropout = nn.Dropout(dropout)
+    
+    def forward(self, X, mask):
+            
+            batch_size = X.shape[0]
+            X_len = X.shape[1]
+            
+            pos = torch.arange(0, X_len).unsqueeze(0).repeat(batch_size, 1).to(self.device)
+            
+            #pos = [batch size, src len]
+            
+            X = self.dropout(self.tok_embedding(X)  + self.pos_embedding(pos))
+        
+            for layer in self.layers:
+                X = layer(X, mask)
+                
+            return X   
