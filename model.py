@@ -4,8 +4,9 @@ import math
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-d_model = 256
-h = 8
+d_model = 256 # embedding dimension
+h = 8 # head size
+max_len = 100 # max sequence length
 
 
 
@@ -41,7 +42,7 @@ class TokenEmbedding(nn.Module):
 
 # Positional encoding
 class PositionalEncoding(nn.Module):
-    def __init__(self, d_embed, max_len=256, device=device):
+    def __init__(self, d_embed, max_len, device=device):
         super(PositionalEncoding, self).__init__()
         encoding = torch.zeros(max_len, d_embed)
         encoding.requires_grad = False
@@ -108,3 +109,26 @@ class MultiHeadAttention(nn.Module):
         attention = attention.reshape(batch_size, query_len, self.heads * self.head_dim)
         out = self.fc_out(attention)
         return out
+    
+
+
+class Encoder(nn.Module):
+    def __init__(self, head_dim, n_heads, filter, dropout, device):
+        super().__init__()
+        
+        self.self_attn_layer_norm = nn.LayerNorm(head_dim)
+        self.ff_layer_norm = nn.LayerNorm(head_dim)
+        self.self_attention = MultiHeadAttention(head_dim, n_heads, dropout, device)
+        self.positionwise_feedforward = FFN(head_dim,filter,dropout)
+        self.dropout = nn.Dropout(dropout)
+        
+    def forward(self, src, src_mask):             
+        
+        _src, _ = self.self_attention(src, src, src, src_mask)
+        src = self.self_attn_layer_norm(src + self.dropout(_src))
+        _src = self.positionwise_feedforward(src)
+        src = self.ff_layer_norm(src + self.dropout(_src))
+    
+        return src
+
+
